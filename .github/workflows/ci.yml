@@ -1,0 +1,61 @@
+name: PulseHub Backend CI
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: pulsehub_users
+          POSTGRES_USER: pulsehub
+          POSTGRES_PASSWORD: pulsehub
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pulsehub -d pulsehub_users"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Create service databases
+        env:
+          PGPASSWORD: pulsehub
+        run: |
+          psql -h localhost -U pulsehub -d pulsehub_users -c "CREATE DATABASE pulsehub_auth;"
+
+      - name: Run Maven reactor tests
+        env:
+          DB_URL: jdbc:postgresql://localhost:5432/pulsehub_users
+          DB_USERNAME: pulsehub
+          DB_PASSWORD: pulsehub
+          JPA_DDL_AUTO: create-drop
+          AUTH_DB_URL: jdbc:postgresql://localhost:5432/pulsehub_auth
+          AUTH_DB_USERNAME: pulsehub
+          AUTH_DB_PASSWORD: pulsehub
+          AUTH_JPA_DDL_AUTO: create-drop
+          JWT_SECRET: ci-only-secret-for-pulsehub-auth-service-tests
+          JWT_EXPIRATION_SECONDS: 3600
+        run: |
+          chmod +x mvnw
+          ./mvnw -B test

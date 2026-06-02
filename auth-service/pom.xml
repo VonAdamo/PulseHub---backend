@@ -11,9 +11,9 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>user-service</artifactId>
-    <name>user-service</name>
-    <description>PulseHub User Service</description>
+    <artifactId>auth-service</artifactId>
+    <name>auth-service</name>
+    <description>PulseHub Auth Service</description>
 
     <dependencies>
         <dependency>
@@ -27,6 +27,14 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-crypto</artifactId>
         </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>
