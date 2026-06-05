@@ -21,6 +21,7 @@
 
     <modules>
         <module>auth-service</module>
+        <module>bff-service</module>
         <module>user-service</module>
     </modules>
 
