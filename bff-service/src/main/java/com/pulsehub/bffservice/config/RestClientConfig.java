@@ -22,4 +22,11 @@ public class RestClientConfig {
                 .baseUrl(serviceUrlProperties.userServiceUrl())
                 .build();
     }
+
+    @Bean
+    RestClient messageRestClient(ServiceUrlProperties serviceUrlProperties) {
+        return RestClient.builder()
+                .baseUrl(serviceUrlProperties.messageServiceUrl())
+                .build();
+    }
 }
