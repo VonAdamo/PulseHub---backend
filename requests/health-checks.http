@@ -1,0 +1,86 @@
+@bffUrl = http://localhost:8080
+@userUrl = http://localhost:8081
+@authUrl = http://localhost:8082
+@messageUrl = http://localhost:8083
+@channel = general
+@username = healthcheck
+@password = password123
+
+### BFF actuator health
+GET {{bffUrl}}/actuator/health
+
+### Auth Service actuator health
+GET {{authUrl}}/actuator/health
+
+### User Service actuator health
+GET {{userUrl}}/actuator/health
+
+### Message Service actuator health
+GET {{messageUrl}}/actuator/health
+
+### Bot Service actuator health
+GET http://localhost:8084/actuator/health
+
+### Register health-check user through BFF
+POST {{bffUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "displayName": "Health Check",
+  "password": "{{password}}"
+}
+
+### Login health-check user through BFF
+# Copy token from response into @token below.
+POST {{bffUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+### Paste token here after login
+@token = paste-token-here
+
+### BFF JWT validation check
+GET {{bffUrl}}/api/me
+Authorization: Bearer {{token}}
+
+### BFF to user-service check
+GET {{bffUrl}}/api/users
+Authorization: Bearer {{token}}
+
+### BFF to message-service check
+GET {{bffUrl}}/api/messages?channel={{channel}}
+Authorization: Bearer {{token}}
+
+### Direct auth-service check
+POST {{authUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+### Direct user-service check
+GET {{userUrl}}/users
+
+### Direct message-service check
+GET {{messageUrl}}/messages?channel={{channel}}
+
+### Bot/RabbitMQ chain check through BFF
+POST {{bffUrl}}/api/messages
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "channel": "{{channel}}",
+  "content": "hej bot"
+}
+
+### Wait about one second, then verify PulseBot response
+GET {{bffUrl}}/api/messages?channel={{channel}}
+Authorization: Bearer {{token}}

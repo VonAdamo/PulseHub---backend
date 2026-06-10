@@ -53,8 +53,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private boolean isOpenEndpoint(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return "POST".equals(request.getMethod())
-                && ("/api/auth/register".equals(path) || "/api/auth/login".equals(path));
+        return "/actuator/health".equals(path)
+                || ("POST".equals(request.getMethod())
+                && ("/api/auth/register".equals(path) || "/api/auth/login".equals(path)));
     }
 
     private void unauthorized(HttpServletResponse response) throws IOException {

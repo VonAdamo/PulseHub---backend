@@ -41,6 +41,16 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
+    void allowsActuatorHealthWithoutToken() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/actuator/health");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, filterChain);
+
+        verify(filterChain).doFilter(request, response);
+    }
+
+    @Test
     void rejectsProtectedEndpointWithoutToken() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/users");
         MockHttpServletResponse response = new MockHttpServletResponse();
