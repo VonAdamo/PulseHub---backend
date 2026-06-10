@@ -10,7 +10,6 @@ public record CreateMessageRequest(
         @NotNull
         UUID senderId,
 
-        @NotBlank
         @Size(max = 50)
         String username,
 

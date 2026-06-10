@@ -19,6 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AuthBffControllerTest {
 
     private final AuthServiceClient authServiceClient = mock(AuthServiceClient.class);
+    private final AuthRegistrationService authRegistrationService = mock(AuthRegistrationService.class);
     private LocalValidatorFactoryBean validator;
     private MockMvc mockMvc;
 
@@ -27,7 +28,7 @@ class AuthBffControllerTest {
         validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();
 
-        mockMvc = MockMvcBuilders.standaloneSetup(new AuthBffController(authServiceClient))
+        mockMvc = MockMvcBuilders.standaloneSetup(new AuthBffController(authServiceClient, authRegistrationService))
                 .setValidator(validator)
                 .build();
     }
@@ -38,11 +39,11 @@ class AuthBffControllerTest {
     }
 
     @Test
-    void registerForwardsRequestToAuthService() throws Exception {
+    void registerCreatesAuthUserAndUserProfile() throws Exception {
         UUID userId = UUID.randomUUID();
         RegisterRequest request = new RegisterRequest("milla", "Milla", "password123");
 
-        when(authServiceClient.register(request)).thenReturn(new AuthResponse(userId, "milla", null));
+        when(authRegistrationService.register(request)).thenReturn(new RegisterResponse(userId, "milla", "Milla"));
 
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -56,7 +57,7 @@ class AuthBffControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.userId").value(userId.toString()))
                 .andExpect(jsonPath("$.username").value("milla"))
-                .andExpect(jsonPath("$.token").doesNotExist());
+                .andExpect(jsonPath("$.displayName").value("Milla"));
     }
 
     @Test

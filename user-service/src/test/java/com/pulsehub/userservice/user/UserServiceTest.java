@@ -32,6 +32,21 @@ class UserServiceTest {
     }
 
     @Test
+    void createUserUsesProvidedIdWhenPresent() {
+        UUID id = UUID.randomUUID();
+        CreateUserRequest request = new CreateUserRequest(id, "adam", "Adam");
+        User savedUser = new User(id, request.username(), request.displayName());
+
+        when(userRepository.existsByUsername(request.username())).thenReturn(false);
+        when(userRepository.save(org.mockito.ArgumentMatchers.any(User.class))).thenReturn(savedUser);
+
+        User user = userService.createUser(request);
+
+        assertThat(user.getId()).isEqualTo(id);
+        assertThat(user.getUsername()).isEqualTo("adam");
+    }
+
+    @Test
     void createUserThrowsWhenUsernameAlreadyExists() {
         CreateUserRequest request = new CreateUserRequest("adam", "Adam");
 

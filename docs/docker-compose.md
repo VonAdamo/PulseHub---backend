@@ -13,6 +13,7 @@ Docker Compose starts:
 | `auth-service` | `8082` | `8082` |
 | `message-service` | `8083` | `8083` |
 | `bot-service` | `8084` | `8084` |
+| `user-service` gRPC | `9091` | `9091` |
 | `rabbitmq` | `5672`, `15672` | `5672`, `15672` |
 | `auth-db` | `5434` | `5432` |
 | `user-db` | `5433` | `5432` |
@@ -25,6 +26,7 @@ Inside the Docker network, services must use Compose service names:
 ```text
 auth-service -> auth-db:5432
 user-service -> user-db:5432
+message-service -> user-service:9091
 message-service -> message-db:5432
 message-service -> rabbitmq:5672
 bff-service -> http://auth-service:8082

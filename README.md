@@ -24,11 +24,12 @@ Huvudflödet för meddelanden:
 1. Klienten skickar `POST /api/messages` till BFF.
 2. BFF validerar JWT och läser `userId` + `username`.
 3. BFF skickar meddelandet till `message-service`.
-4. `message-service` sparar meddelandet i PostgreSQL.
-5. `message-service` publicerar eventet `message-published` till RabbitMQ.
-6. `bot-service` konsumerar eventet.
-7. Om innehållet triggar botten, skickar `bot-service` ett botsvar till `message-service`.
-8. `message-service` sparar botsvaret.
+4. `message-service` hämtar avsändarprofilen från `user-service` via gRPC.
+5. `message-service` sparar meddelandet i PostgreSQL med username från `user-service`.
+6. `message-service` publicerar eventet `message-published` till RabbitMQ.
+7. `bot-service` konsumerar eventet.
+8. Om innehållet triggar botten, skickar `bot-service` ett botsvar till `message-service`.
+9. `message-service` sparar botsvaret.
 
 Mer detaljer finns i:
 
@@ -69,6 +70,7 @@ Mer detaljer finns i:
 | Auth Service | `8082` | `8082` |
 | Message Service | `8083` | `8083` |
 | Bot Service | `8084` | `8084` |
+| User Service gRPC | `9091` | `9091` |
 | RabbitMQ AMQP | `5672` | `5672` |
 | RabbitMQ Management UI | `15672` | `15672` |
 | User DB | `5433` | `5432` |
@@ -125,6 +127,28 @@ Event type: message-published
 
 `message-service` publicerar `message-published` efter att ett meddelande sparats.
 `bot-service` konsumerar eventet från `pulsehub.message-published`.
+
+## gRPC
+
+`user-service` exponerar gRPC på port `9091`.
+
+Proto-filen finns här:
+
+```text
+proto/user.proto
+```
+
+Den definierar:
+
+```text
+UserGrpcService/GetUserById
+```
+
+`message-service` anropar `user-service` via gRPC innan ett meddelande sparas.
+Om användaren finns används `username` från `user-service`.
+`username` från message-requesten är frivilligt och används inte som källa till sanning.
+Om användaren inte finns returnerar `message-service` `404`.
+Om gRPC/user-service inte går att nå returnerar `message-service` `503`.
 
 ## Starta Allt
 
@@ -194,14 +218,24 @@ $registerBody = @{
   password = "password123"
 } | ConvertTo-Json
 
-Invoke-WebRequest -UseBasicParsing `
+$register = Invoke-RestMethod `
   -Uri http://localhost:8080/api/auth/register `
   -Method Post `
   -ContentType "application/json; charset=utf-8" `
   -Body ([System.Text.Encoding]::UTF8.GetBytes($registerBody))
 ```
 
-Förväntat: `userId` och `username`. Token returneras först vid login.
+Förväntat: `userId`, `username` och `displayName`. Token returneras först vid login.
+
+BFF skapar först auth-kontot i `auth-service` och skapar sedan profilen i `user-service` med samma `userId`.
+
+Kontrollera profilen i `user-service`:
+
+```powershell
+Invoke-RestMethod "http://localhost:8081/users/$($register.userId)"
+```
+
+Om `user-service` misslyckas efter att auth-kontot skapats returnerar BFF `502 Registration profile creation failed`. Det kan lämna ett partiellt skapat konto i `auth-service`.
 
 ### 3. Login
 
@@ -243,7 +277,7 @@ Förväntat:
 
 ### 5. Skicka Meddelande Och Trigga PulseBot
 
-Klienten skickar bara `channel` och `content`. BFF fyller själv i `senderId` och `username` från JWT.
+Klienten skickar bara `channel` och `content`. BFF fyller själv i `senderId` och kan tills vidare skicka `username` från JWT, men `message-service` ignorerar requestens `username` och hämtar korrekt username från `user-service` via gRPC.
 
 ```powershell
 $messageBody = @{
@@ -351,6 +385,12 @@ user-db
 message-db
 ```
 
+gRPC från `message-service` till `user-service` använder:
+
+```text
+user-service:9091
+```
+
 ## Lokal Maven-test
 
 Kör alla tester:
@@ -364,6 +404,16 @@ Linux/macOS:
 ```bash
 ./mvnw -B test
 ```
+
+## Smoke Test
+
+Efter att Docker Compose har startat backend kan du köra ett snabbt end-to-end-test:
+
+```powershell
+.\scripts\smoke-test.ps1
+```
+
+Skriptet kontrollerar health endpoints, registrerar en ny användare via BFF, verifierar profilen i `user-service`, loggar in, anropar `/api/me`, skickar meddelande och kontrollerar att PulseBot svarar.
 
 ## CI
 
@@ -381,7 +431,6 @@ Moduler:
 
 Nästa rimliga små steg:
 
-- lägga till ett smoke-test-script som kör health-checks och ett `hej bot`-flöde efter `docker compose up`
 - förbättra felhantering/retry runt RabbitMQ-publicering
 - lägga till en outbox-lösning för säkrare event-publicering
 - senare bygga frontend som bara pratar med BFF
@@ -390,4 +439,3 @@ Inte byggt ännu:
 
 - frontend
 - Kubernetes
-- gRPC

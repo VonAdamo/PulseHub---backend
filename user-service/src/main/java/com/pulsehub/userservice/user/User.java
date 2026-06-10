@@ -2,8 +2,6 @@ package com.pulsehub.userservice.user;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
@@ -17,7 +15,6 @@ import java.util.UUID;
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(nullable = false, unique = true, length = 50)
@@ -40,8 +37,18 @@ public class User {
         this.displayName = displayName;
     }
 
+    public User(UUID id, String username, String displayName) {
+        this.id = id;
+        this.username = username;
+        this.displayName = displayName;
+    }
+
     @PrePersist
     void onCreate() {
+        if (id == null) {
+            id = UUID.randomUUID();
+        }
+
         Instant now = Instant.now();
         createdAt = now;
         updatedAt = now;

@@ -21,7 +21,7 @@ public class UserService {
             throw new UsernameAlreadyExistsException(request.username());
         }
 
-        User user = new User(request.username(), request.displayName());
+        User user = new User(request.id(), request.username(), request.displayName());
         return userRepository.save(user);
     }
 

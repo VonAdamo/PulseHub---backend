@@ -1,4 +1,4 @@
-FROM eclipse-temurin:25-jdk-alpine AS build
+FROM eclipse-temurin:25-jdk AS build
 
 WORKDIR /workspace
 
@@ -9,6 +9,7 @@ COPY bff-service/pom.xml bff-service/pom.xml
 COPY bot-service/pom.xml bot-service/pom.xml
 COPY message-service/pom.xml message-service/pom.xml
 COPY user-service/pom.xml user-service/pom.xml
+COPY proto proto
 
 RUN chmod +x mvnw && ./mvnw -B -pl message-service -am dependency:go-offline
 

@@ -14,6 +14,7 @@ Only the `health` endpoint is exposed over HTTP in this step.
 | `auth-service` | `8082` | `http://localhost:8082/actuator/health` |
 | `message-service` | `8083` | `http://localhost:8083/actuator/health` |
 | `bot-service` | `8084` | `http://localhost:8084/actuator/health` |
+| `user-service` gRPC | `9091` | used by `message-service` |
 | PostgreSQL | `5433` | Docker container and database commands |
 | RabbitMQ AMQP | `5672` | `Test-NetConnection localhost -Port 5672` |
 | RabbitMQ UI | `15672` | `http://localhost:15672` |
@@ -188,6 +189,9 @@ Check message-service directly:
 ```powershell
 Invoke-RestMethod "http://localhost:8083/messages?channel=general"
 ```
+
+The gRPC path is exercised when creating a message.
+`message-service` calls `user-service` on gRPC port `9091` before saving.
 
 ## Bot Check
 

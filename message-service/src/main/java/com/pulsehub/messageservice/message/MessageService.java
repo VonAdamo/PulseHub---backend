@@ -10,20 +10,30 @@ import java.util.UUID;
 public class MessageService {
 
     private static final String DEFAULT_CHANNEL = "general";
+    private static final UUID PULSEBOT_SENDER_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+    private static final String PULSEBOT_USERNAME = "PulseBot";
 
     private final MessageRepository messageRepository;
     private final MessageEventPublisher messageEventPublisher;
+    private final UserProfileClient userProfileClient;
 
-    public MessageService(MessageRepository messageRepository, MessageEventPublisher messageEventPublisher) {
+    public MessageService(
+            MessageRepository messageRepository,
+            MessageEventPublisher messageEventPublisher,
+            UserProfileClient userProfileClient
+    ) {
         this.messageRepository = messageRepository;
         this.messageEventPublisher = messageEventPublisher;
+        this.userProfileClient = userProfileClient;
     }
 
     @Transactional
     public Message createMessage(CreateMessageRequest request) {
+        String username = resolveUsername(request);
+
         Message message = new Message(
                 request.senderId(),
-                request.username().trim(),
+                username,
                 normalizeChannel(request.channel()),
                 request.content().trim()
         );
@@ -31,6 +41,20 @@ public class MessageService {
         Message savedMessage = messageRepository.save(message);
         messageEventPublisher.publishMessagePublished(savedMessage);
         return savedMessage;
+    }
+
+    private String resolveUsername(CreateMessageRequest request) {
+        return userProfileClient.findUser(request.senderId())
+                .map(UserProfile::username)
+                .orElseGet(() -> resolveSystemSenderOrThrow(request));
+    }
+
+    private String resolveSystemSenderOrThrow(CreateMessageRequest request) {
+        if (PULSEBOT_SENDER_ID.equals(request.senderId())) {
+            return PULSEBOT_USERNAME;
+        }
+
+        throw new SenderProfileNotFoundException(request.senderId());
     }
 
     @Transactional(readOnly = true)
