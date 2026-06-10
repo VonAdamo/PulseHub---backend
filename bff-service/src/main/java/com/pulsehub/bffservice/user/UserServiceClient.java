@@ -31,4 +31,12 @@ public class UserServiceClient {
                 .retrieve()
                 .body(UserResponse.class);
     }
+
+    public UserResponse createUser(CreateUserRequest request) {
+        return userRestClient.post()
+                .uri("/users")
+                .body(request)
+                .retrieve()
+                .body(UserResponse.class);
+    }
 }

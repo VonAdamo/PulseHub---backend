@@ -75,12 +75,32 @@ class MessageControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "username": "",
                                   "channel": "general",
                                   "content": ""
                                 }
                                 """))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createMessageAcceptsRequestWithoutUsername() throws Exception {
+        UUID senderId = UUID.randomUUID();
+        CreateMessageRequest request = new CreateMessageRequest(senderId, null, "general", "Hej fran PulseHub");
+        Message message = message(UUID.randomUUID(), senderId, "milla", "general", "Hej fran PulseHub");
+
+        when(messageService.createMessage(request)).thenReturn(message);
+
+        mockMvc.perform(post("/messages")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "senderId": "%s",
+                                  "channel": "general",
+                                  "content": "Hej fran PulseHub"
+                                }
+                                """.formatted(senderId)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.username").value("milla"));
     }
 
     @Test
@@ -160,6 +180,52 @@ class MessageControllerTest {
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.title").value("Message event could not be published"))
                 .andExpect(jsonPath("$.detail").value("Could not publish message-published event"));
+    }
+
+    @Test
+    void createMessageReturnsServiceUnavailableWhenSenderLookupFails() throws Exception {
+        UUID senderId = UUID.randomUUID();
+        CreateMessageRequest request = new CreateMessageRequest(senderId, "milla", "general", "Hej");
+
+        when(messageService.createMessage(request)).thenThrow(
+                new UserProfileLookupException("Could not look up sender in user-service", new RuntimeException("gRPC down"))
+        );
+
+        mockMvc.perform(post("/messages")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "senderId": "%s",
+                                  "username": "milla",
+                                  "channel": "general",
+                                  "content": "Hej"
+                                }
+                                """.formatted(senderId)))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.title").value("Sender profile lookup failed"))
+                .andExpect(jsonPath("$.detail").value("Could not look up sender in user-service"));
+    }
+
+    @Test
+    void createMessageReturnsNotFoundWhenSenderProfileDoesNotExist() throws Exception {
+        UUID senderId = UUID.randomUUID();
+        CreateMessageRequest request = new CreateMessageRequest(senderId, "wrong-name", "general", "Hej");
+
+        when(messageService.createMessage(request)).thenThrow(new SenderProfileNotFoundException(senderId));
+
+        mockMvc.perform(post("/messages")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "senderId": "%s",
+                                  "username": "wrong-name",
+                                  "channel": "general",
+                                  "content": "Hej"
+                                }
+                                """.formatted(senderId)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.title").value("Sender profile not found"))
+                .andExpect(jsonPath("$.detail").value("Sender profile not found in user-service: " + senderId));
     }
 
     private Message message(UUID id, UUID senderId, String username, String channel, String content) {

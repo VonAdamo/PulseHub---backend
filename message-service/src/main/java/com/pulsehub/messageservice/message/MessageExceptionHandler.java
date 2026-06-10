@@ -23,4 +23,20 @@ public class MessageExceptionHandler {
         problemDetail.setDetail(exception.getMessage());
         return problemDetail;
     }
+
+    @ExceptionHandler(UserProfileLookupException.class)
+    ProblemDetail handleUserProfileLookup(UserProfileLookupException exception) {
+        ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.SERVICE_UNAVAILABLE);
+        problemDetail.setTitle("Sender profile lookup failed");
+        problemDetail.setDetail(exception.getMessage());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(SenderProfileNotFoundException.class)
+    ProblemDetail handleSenderProfileNotFound(SenderProfileNotFoundException exception) {
+        ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.NOT_FOUND);
+        problemDetail.setTitle("Sender profile not found");
+        problemDetail.setDetail(exception.getMessage());
+        return problemDetail;
+    }
 }

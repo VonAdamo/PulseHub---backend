@@ -62,6 +62,29 @@ class UserControllerTest {
     }
 
     @Test
+    void createUserAcceptsProvidedId() throws Exception {
+        UUID id = UUID.randomUUID();
+        CreateUserRequest request = new CreateUserRequest(id, "adam", "Adam");
+        User user = new User(id, request.username(), request.displayName());
+
+        when(userService.createUser(request)).thenReturn(user);
+
+        mockMvc.perform(post("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "id": "%s",
+                                  "username": "adam",
+                                  "displayName": "Adam"
+                                }
+                                """.formatted(id)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(id.toString()))
+                .andExpect(jsonPath("$.username").value("adam"))
+                .andExpect(jsonPath("$.displayName").value("Adam"));
+    }
+
+    @Test
     void createUserRejectsInvalidRequest() throws Exception {
         mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)

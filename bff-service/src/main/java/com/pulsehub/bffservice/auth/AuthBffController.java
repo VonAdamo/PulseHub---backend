@@ -13,15 +13,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthBffController {
 
     private final AuthServiceClient authServiceClient;
+    private final AuthRegistrationService authRegistrationService;
 
-    public AuthBffController(AuthServiceClient authServiceClient) {
+    public AuthBffController(AuthServiceClient authServiceClient, AuthRegistrationService authRegistrationService) {
         this.authServiceClient = authServiceClient;
+        this.authRegistrationService = authRegistrationService;
     }
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
-        return authServiceClient.register(request);
+    public RegisterResponse register(@Valid @RequestBody RegisterRequest request) {
+        return authRegistrationService.register(request);
     }
 
     @PostMapping("/login")

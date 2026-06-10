@@ -1,7 +1,7 @@
 # PulseHub Backend Architecture
 
 This document describes the current backend architecture in this repository.
-It reflects the implementation now: Java 25, Spring Boot 4, Maven reactor, REST between services, PostgreSQL per persistent service, and RabbitMQ for message events.
+It reflects the implementation now: Java 25, Spring Boot 4, Maven reactor, REST between services, gRPC between message-service and user-service, PostgreSQL per persistent service, and RabbitMQ for message events.
 
 ## Repository Layout
 
@@ -62,6 +62,34 @@ Each persistent service owns its own database.
 Services should not share database tables.
 Cross-service access should happen through HTTP or messaging.
 
+## gRPC
+
+The shared proto file is:
+
+```text
+proto/user.proto
+```
+
+It defines:
+
+```text
+UserGrpcService/GetUserById
+```
+
+`user-service` is the gRPC server and listens on port `9091`.
+`message-service` is the gRPC client.
+
+When `message-service` receives `POST /messages`, it calls `GetUserById(senderId)` before saving.
+
+Current behavior:
+
+- if `user-service` returns a profile, `message-service` uses the username from `user-service`
+- request `username` is optional and is not trusted by `message-service`
+- if `user-service` returns `NOT_FOUND`, `message-service` returns `404`
+- if `user-service` is unavailable, `message-service` returns `503`
+
+The only current exception is the internal PulseBot sender id `00000000-0000-0000-0000-000000000001`, because PulseBot posts through `message-service` directly and does not have a normal user profile yet.
+
 ## HTTP Routing
 
 The frontend should call only `bff-service`.
@@ -70,7 +98,7 @@ Current BFF routes:
 
 | BFF endpoint | Target |
 | --- | --- |
-| `POST /api/auth/register` | `auth-service POST /auth/register` |
+| `POST /api/auth/register` | `auth-service POST /auth/register`, then `user-service POST /users` |
 | `POST /api/auth/login` | `auth-service POST /auth/login` |
 | `GET /api/me` | BFF reads JWT claims locally |
 | `GET /api/users` | `user-service GET /users` |
@@ -143,7 +171,7 @@ BFF reads `userId` and `username` from JWT and forwards:
 }
 ```
 
-`message-service` saves the message and publishes `message-published`.
+`message-service` ignores the forwarded `username`, resolves the sender through gRPC, saves the message with the username from `user-service`, and publishes `message-published`.
 
 ## RabbitMQ
 
@@ -226,7 +254,6 @@ It starts all backend services, three PostgreSQL containers, and RabbitMQ.
 These are not implemented yet:
 
 - frontend
-- gRPC
 - Kubernetes
 - full Docker Compose for all infrastructure/services
 - advanced authorization or roles

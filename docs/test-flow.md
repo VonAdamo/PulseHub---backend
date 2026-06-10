@@ -23,6 +23,7 @@ Run these locally before testing:
 | RabbitMQ | `localhost:5672` |
 | RabbitMQ Management UI | `http://localhost:15672` |
 | `user-service` | `http://localhost:8081` |
+| `user-service` gRPC | `localhost:9091` |
 | `auth-service` | `http://localhost:8082` |
 | `message-service` | `http://localhost:8083` |
 | `bot-service` | `http://localhost:8084` |
@@ -107,6 +108,7 @@ Expected result:
 ## Trigger The Full Message Flow
 
 Post a message through BFF. The client only sends `channel` and `content`; BFF fills `senderId` and `username` from the JWT.
+`message-service` then tries to resolve the sender through `user-service` gRPC before saving.
 
 ```powershell
 $messageBody = @{
