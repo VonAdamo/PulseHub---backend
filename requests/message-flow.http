@@ -1,0 +1,45 @@
+@bffUrl = http://localhost:8080
+@channel = general
+@username = flowtester
+@password = password123
+
+### Register user through BFF
+POST {{bffUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "displayName": "Flow Tester",
+  "password": "{{password}}"
+}
+
+### Login through BFF
+# Copy the token from the response into the token variable below.
+POST {{bffUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+### Set token manually after login
+@token = paste-token-here
+
+### Check current user from JWT claims
+GET {{bffUrl}}/api/me
+Authorization: Bearer {{token}}
+
+### Trigger full BFF -> message-service -> RabbitMQ -> bot-service -> message-service flow
+POST {{bffUrl}}/api/messages
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "channel": "{{channel}}",
+  "content": "hej bot"
+}
+
+### Wait about one second, then verify original message and PulseBot response
+GET {{bffUrl}}/api/messages?channel={{channel}}
+Authorization: Bearer {{token}}

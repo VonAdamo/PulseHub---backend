@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   build-and-test:
+    name: Build and test auth, bff, bot, message, user
     runs-on: ubuntu-latest
 
     services:
@@ -26,6 +27,16 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
+      rabbitmq:
+        image: rabbitmq:4-management
+        ports:
+          - 5672:5672
+          - 15672:15672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
       - name: Checkout code
@@ -37,6 +48,19 @@ jobs:
           distribution: temurin
           java-version: '25'
           cache: maven
+
+      - name: Make Maven wrapper executable
+        run: chmod +x mvnw
+
+      - name: Show Maven reactor modules
+        run: |
+          echo "PulseHub backend modules:"
+          echo "- auth-service"
+          echo "- bff-service"
+          echo "- bot-service"
+          echo "- message-service"
+          echo "- user-service"
+          ./mvnw -q help:evaluate -Dexpression=project.modules -DforceStdout
 
       - name: Create service databases
         env:
@@ -66,6 +90,12 @@ jobs:
           MESSAGE_DB_USERNAME: pulsehub
           MESSAGE_DB_PASSWORD: pulsehub
           MESSAGE_JPA_DDL_AUTO: create-drop
-        run: |
-          chmod +x mvnw
-          ./mvnw -B test
+          BOT_SERVER_PORT: 8084
+          RABBITMQ_HOST: localhost
+          RABBITMQ_PORT: 5672
+          RABBITMQ_USERNAME: guest
+          RABBITMQ_PASSWORD: guest
+          MESSAGE_EVENTS_EXCHANGE: pulsehub.messages
+          MESSAGE_PUBLISHED_QUEUE: pulsehub.message-published
+          MESSAGE_PUBLISHED_ROUTING_KEY: message.published
+        run: ./mvnw -B test
