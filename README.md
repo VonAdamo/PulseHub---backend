@@ -5,6 +5,10 @@ Backend-repot innehåller flera Spring Boot-microservices i en Maven-reactor och
 
 Frontend ska senare bara prata med `bff-service`. BFF ansvarar för JWT-validering och vidarebefordrar anrop till interna services.
 
+## Screenshot
+
+![PulseHub Home](docs/screenshots/img.png)
+
 ## Arkitektur
 
 ```text
@@ -28,8 +32,8 @@ Huvudflödet för meddelanden:
 5. `message-service` sparar meddelandet i PostgreSQL med username från `user-service`.
 6. `message-service` publicerar eventet `message-published` till RabbitMQ.
 7. `bot-service` konsumerar eventet.
-8. Om innehållet triggar botten, skickar `bot-service` ett botsvar till `message-service`.
-9. `message-service` sparar botsvaret.
+8. Om innehållet triggar botten, skickar `bot-service` ett svar till `message-service`.
+9. `message-service` sparar svaret.
 
 Mer detaljer finns i:
 
@@ -40,13 +44,13 @@ Mer detaljer finns i:
 
 ## Services
 
-| Service | Ansvar |
-| --- | --- |
-| `bff-service` | Frontendens enda ingång. Validerar JWT och anropar interna services via REST. |
-| `auth-service` | Registrering, inloggning, BCrypt-hashning och JWT-generering. |
-| `user-service` | Hanterar användarprofiler. |
-| `message-service` | Skapar/hämtar chattmeddelanden och publicerar RabbitMQ-event. |
-| `bot-service` | Konsumerar `message-published` och skapar enkla PulseBot-svar. |
+| Service           | Ansvar                                                                        |
+|-------------------|-------------------------------------------------------------------------------|
+| `bff-service`     | Frontendens enda ingång. Validerar JWT och anropar interna services via REST. |
+| `auth-service`    | Registrering, inloggning, BCrypt-hashning och JWT-generering.                 |
+| `user-service`    | Hanterar användarprofiler.                                                    |
+| `message-service` | Skapar/hämtar chattmeddelanden och publicerar RabbitMQ-event.                 |
+| `bot-service`     | Konsumerar `message-published` och skapar enkla PulseBot-svar.                |
 
 ## Teknikstack
 
@@ -63,19 +67,19 @@ Mer detaljer finns i:
 
 ## Portar
 
-| Komponent | Host-port | Intern Docker-port |
-| --- | --- | --- |
-| BFF | `8080` | `8080` |
-| User Service | `8081` | `8081` |
-| Auth Service | `8082` | `8082` |
-| Message Service | `8083` | `8083` |
-| Bot Service | `8084` | `8084` |
-| User Service gRPC | `9091` | `9091` |
-| RabbitMQ AMQP | `5672` | `5672` |
-| RabbitMQ Management UI | `15672` | `15672` |
-| User DB | `5433` | `5432` |
-| Auth DB | `5434` | `5432` |
-| Message DB | `5435` | `5432` |
+| Komponent              | Host-port | Intern Docker-port |
+|------------------------|-----------|--------------------|
+| BFF                    | `8080`    | `8080`             |
+| User Service           | `8081`    | `8081`             |
+| Auth Service           | `8082`    | `8082`             |
+| Message Service        | `8083`    | `8083`             |
+| Bot Service            | `8084`    | `8084`             |
+| User Service gRPC      | `9091`    | `9091`             |
+| RabbitMQ AMQP          | `5672`    | `5672`             |
+| RabbitMQ Management UI | `15672`   | `15672`            |
+| User DB                | `5433`    | `5432`             |
+| Auth DB                | `5434`    | `5432`             |
+| Message DB             | `5435`    | `5432`             |
 
 Actuator health finns på varje service:
 
@@ -91,11 +95,11 @@ http://localhost:8084/actuator/health
 
 Docker Compose startar separata PostgreSQL-containers:
 
-| Compose service | Databas | Ägare |
-| --- | --- | --- |
-| `auth-db` | `pulsehub_auth` | `auth-service` |
-| `user-db` | `pulsehub_users` | `user-service` |
-| `message-db` | `pulsehub_messages` | `message-service` |
+| Compose service | Databas             | Ägare             |
+|-----------------|---------------------|-------------------|
+| `auth-db`       | `pulsehub_auth`     | `auth-service`    |
+| `user-db`       | `pulsehub_users`    | `user-service`    |
+| `message-db`    | `pulsehub_messages` | `message-service` |
 
 Lokala labb-credentials:
 
@@ -354,7 +358,7 @@ Authorization: Bearer <token>
 **JWT fungerar i auth men inte i BFF**  
 `JWT_SECRET` måste vara samma i `auth-service` och `bff-service`.
 
-**message-service returnerar 503 vid POST /messages**  
+**Message-service returnerar 503 vid POST /messages**  
 RabbitMQ är troligen inte redo eller inte nåbar. Kontrollera:
 
 ```powershell
