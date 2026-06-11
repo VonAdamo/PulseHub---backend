@@ -41,6 +41,18 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
+    void allowsCorsPreflightWithoutToken() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/api/auth/login");
+        request.addHeader(HttpHeaders.ORIGIN, "http://localhost:3000");
+        request.addHeader(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, filterChain);
+
+        verify(filterChain).doFilter(request, response);
+    }
+
+    @Test
     void allowsActuatorHealthWithoutToken() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/actuator/health");
         MockHttpServletResponse response = new MockHttpServletResponse();

@@ -159,6 +159,17 @@ class MessageControllerTest {
     }
 
     @Test
+    void getMessageCountReturnsCount() throws Exception {
+        UUID senderId = UUID.randomUUID();
+
+        when(messageService.countMessagesBySenderId(senderId)).thenReturn(12L);
+
+        mockMvc.perform(get("/messages/count").param("senderId", senderId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sentMessagesCount").value(12L));
+    }
+
+    @Test
     void createMessageReturnsServiceUnavailableWhenEventCannotBePublished() throws Exception {
         UUID senderId = UUID.randomUUID();
         CreateMessageRequest request = new CreateMessageRequest(senderId, "milla", "general", "Hej");

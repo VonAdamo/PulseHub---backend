@@ -1,61 +1,92 @@
 package com.pulsehub.botservice.bot;
 
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 
 import java.time.Instant;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 
 class PulseBotServiceTest {
 
-    private final MessageServiceClient messageServiceClient = mock(MessageServiceClient.class);
-    private final PulseBotService pulseBotService = new PulseBotService(messageServiceClient);
-
     @Test
     void handleCreatesBotResponseForHelpCommand() {
-        MessagePublishedEvent event = event("adam", "Kan jag få /help?", "general");
+        RecordingMessageServiceClient messageServiceClient = new RecordingMessageServiceClient(0L);
+        PulseBotService pulseBotService = new PulseBotService(messageServiceClient, new NoopUserServiceClient());
 
-        pulseBotService.handle(event);
+        pulseBotService.handle(event("adam", "Kan jag fa /help?", "general"));
 
-        ArgumentCaptor<MessageCreateRequest> requestCaptor = ArgumentCaptor.forClass(MessageCreateRequest.class);
-        verify(messageServiceClient).createMessage(requestCaptor.capture());
-
-        MessageCreateRequest request = requestCaptor.getValue();
-        assertThat(request.senderId()).isEqualTo(PulseBotService.BOT_SENDER_ID);
-        assertThat(request.username()).isEqualTo(PulseBotService.BOT_USERNAME);
-        assertThat(request.channel()).isEqualTo("general");
-        assertThat(request.content()).isEqualTo(PulseBotService.BOT_RESPONSE);
-    }
-
-    @Test
-    void handleCreatesBotResponseForHejBot() {
-        pulseBotService.handle(event("adam", "hej bot", "general"));
-
-        verify(messageServiceClient).createMessage(new MessageCreateRequest(
+        assertThat(messageServiceClient.lastRequest).isEqualTo(new MessageCreateRequest(
                 PulseBotService.BOT_SENDER_ID,
                 PulseBotService.BOT_USERNAME,
                 "general",
-                PulseBotService.BOT_RESPONSE
+                PulseBotService.HELP_RESPONSE
         ));
     }
 
     @Test
+    void handleCreatesBotResponseForAboutCommand() {
+        RecordingMessageServiceClient messageServiceClient = new RecordingMessageServiceClient(0L);
+        PulseBotService pulseBotService = new PulseBotService(messageServiceClient, new NoopUserServiceClient());
+
+        pulseBotService.handle(event("adam", "Kan du beratta om /about?", "general"));
+
+        assertThat(messageServiceClient.lastRequest).isEqualTo(new MessageCreateRequest(
+                PulseBotService.BOT_SENDER_ID,
+                PulseBotService.BOT_USERNAME,
+                "general",
+                PulseBotService.ABOUT_RESPONSE
+        ));
+    }
+
+    @Test
+    void handleCreatesMeResponseWithUserDetailsAndMessageCount() {
+        UUID senderId = UUID.fromString("11111111-1111-1111-1111-111111111111");
+        RecordingMessageServiceClient messageServiceClient = new RecordingMessageServiceClient(12L);
+        StubUserServiceClient userServiceClient = new StubUserServiceClient(new UserResponse(
+                senderId,
+                "adam",
+                "Adam",
+                Instant.parse("2026-06-01T10:00:00Z"),
+                Instant.parse("2026-06-01T10:00:00Z")
+        ));
+        PulseBotService pulseBotService = new PulseBotService(messageServiceClient, userServiceClient);
+
+        pulseBotService.handle(new MessagePublishedEvent(
+                UUID.randomUUID(),
+                "message-published",
+                UUID.randomUUID(),
+                senderId.toString(),
+                "adam",
+                "general",
+                "/me",
+                Instant.now()
+        ));
+
+        assertThat(messageServiceClient.lastRequest.content())
+                .contains("adam (Adam)")
+                .contains("Created: 2026-06-01 / 10:00")
+                .contains("12");
+    }
+
+    @Test
     void handleIgnoresPulseBotEventsToAvoidLoop() {
+        RecordingMessageServiceClient messageServiceClient = new RecordingMessageServiceClient(0L);
+        PulseBotService pulseBotService = new PulseBotService(messageServiceClient, new NoopUserServiceClient());
+
         pulseBotService.handle(event("PulseBot", "hej bot", "general"));
 
-        verify(messageServiceClient, never()).createMessage(org.mockito.ArgumentMatchers.any());
+        assertThat(messageServiceClient.lastRequest).isNull();
     }
 
     @Test
     void handleIgnoresMessagesWithoutTrigger() {
+        RecordingMessageServiceClient messageServiceClient = new RecordingMessageServiceClient(0L);
+        PulseBotService pulseBotService = new PulseBotService(messageServiceClient, new NoopUserServiceClient());
+
         pulseBotService.handle(event("adam", "vanligt meddelande", "general"));
 
-        verify(messageServiceClient, never()).createMessage(org.mockito.ArgumentMatchers.any());
+        assertThat(messageServiceClient.lastRequest).isNull();
     }
 
     private MessagePublishedEvent event(String username, String content, String channel) {
@@ -69,5 +100,50 @@ class PulseBotServiceTest {
                 content,
                 Instant.now()
         );
+    }
+
+    private static final class RecordingMessageServiceClient extends MessageServiceClient {
+        private final long sentMessagesCount;
+        private MessageCreateRequest lastRequest;
+
+        private RecordingMessageServiceClient(long sentMessagesCount) {
+            super(null);
+            this.sentMessagesCount = sentMessagesCount;
+        }
+
+        @Override
+        public void createMessage(MessageCreateRequest request) {
+            lastRequest = request;
+        }
+
+        @Override
+        public long getSentMessagesCount(UUID senderId) {
+            return sentMessagesCount;
+        }
+    }
+
+    private static final class StubUserServiceClient extends UserServiceClient {
+        private final UserResponse userResponse;
+
+        private StubUserServiceClient(UserResponse userResponse) {
+            super(null);
+            this.userResponse = userResponse;
+        }
+
+        @Override
+        public UserResponse getUser(UUID userId) {
+            return userResponse;
+        }
+    }
+
+    private static final class NoopUserServiceClient extends UserServiceClient {
+        private NoopUserServiceClient() {
+            super(null);
+        }
+
+        @Override
+        public UserResponse getUser(UUID userId) {
+            throw new UnsupportedOperationException("Not expected in this test");
+        }
     }
 }

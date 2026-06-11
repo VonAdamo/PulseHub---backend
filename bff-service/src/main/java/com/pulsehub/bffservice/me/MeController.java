@@ -10,9 +10,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/me")
 public class MeController {
 
+    private final MeService meService;
+
+    public MeController(MeService meService) {
+        this.meService = meService;
+    }
+
     @GetMapping
     public MeResponse getMe(HttpServletRequest request) {
         JwtClaims claims = (JwtClaims) request.getAttribute("jwtClaims");
-        return new MeResponse(claims.userId(), claims.username());
+        return meService.getMe(claims);
     }
 }

@@ -10,4 +10,6 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
     List<Message> findAllByOrderByCreatedAtAsc();
 
     List<Message> findByChannelOrderByCreatedAtAsc(String channel);
+
+    long countBySenderId(UUID senderId);
 }

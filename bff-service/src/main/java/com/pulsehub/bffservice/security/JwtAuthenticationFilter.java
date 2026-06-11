@@ -53,7 +53,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private boolean isOpenEndpoint(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return "/actuator/health".equals(path)
+        return "OPTIONS".equals(request.getMethod())
+                || "/actuator/health".equals(path)
                 || ("POST".equals(request.getMethod())
                 && ("/api/auth/register".equals(path) || "/api/auth/login".equals(path)));
     }

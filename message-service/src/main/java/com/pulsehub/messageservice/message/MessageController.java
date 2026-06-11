@@ -41,4 +41,9 @@ public class MessageController {
     public MessageResponse getMessage(@PathVariable UUID id) {
         return MessageResponse.from(messageService.getMessage(id));
     }
+
+    @GetMapping("/count")
+    public MessageCountResponse getMessageCount(@RequestParam UUID senderId) {
+        return MessageCountResponse.from(messageService.countMessagesBySenderId(senderId));
+    }
 }

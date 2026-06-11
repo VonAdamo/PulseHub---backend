@@ -1,13 +1,13 @@
-package com.pulsehub.bffservice.me;
+package com.pulsehub.botservice.bot;
 
 import java.time.Instant;
 import java.util.UUID;
 
-public record MeResponse(
-        UUID userId,
+public record UserResponse(
+        UUID id,
         String username,
         String displayName,
         Instant createdAt,
-        long sentMessagesCount
+        Instant updatedAt
 ) {
 }

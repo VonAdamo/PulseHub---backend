@@ -8,15 +8,14 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.util.UUID;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class MessagePublishedListenerTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-    private final PulseBotService pulseBotService = mock(PulseBotService.class);
+    private final RecordingPulseBotService pulseBotService = new RecordingPulseBotService();
     private final MessagePublishedListener listener = new MessagePublishedListener(objectMapper, pulseBotService);
 
     @Test
@@ -34,6 +33,19 @@ class MessagePublishedListenerTest {
 
         listener.onMessagePublished(objectMapper.writeValueAsString(event));
 
-        verify(pulseBotService).handle(event);
+        assertThat(pulseBotService.lastEvent).isEqualTo(event);
+    }
+
+    private static final class RecordingPulseBotService extends PulseBotService {
+        private MessagePublishedEvent lastEvent;
+
+        private RecordingPulseBotService() {
+            super(null, null);
+        }
+
+        @Override
+        public void handle(MessagePublishedEvent event) {
+            lastEvent = event;
+        }
     }
 }

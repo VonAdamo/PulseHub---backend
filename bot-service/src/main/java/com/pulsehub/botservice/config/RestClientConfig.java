@@ -15,4 +15,11 @@ public class RestClientConfig {
                 .baseUrl(serviceUrlProperties.messageServiceUrl())
                 .build();
     }
+
+    @Bean
+    RestClient userRestClient(ServiceUrlProperties serviceUrlProperties) {
+        return RestClient.builder()
+                .baseUrl(serviceUrlProperties.userServiceUrl())
+                .build();
+    }
 }

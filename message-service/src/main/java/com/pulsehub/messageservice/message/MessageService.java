@@ -72,6 +72,11 @@ public class MessageService {
                 .orElseThrow(() -> new MessageNotFoundException(id));
     }
 
+    @Transactional(readOnly = true)
+    public long countMessagesBySenderId(UUID senderId) {
+        return messageRepository.countBySenderId(senderId);
+    }
+
     private String normalizeChannel(String channel) {
         if (channel == null || channel.isBlank()) {
             return DEFAULT_CHANNEL;

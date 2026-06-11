@@ -163,4 +163,13 @@ class MessageServiceTest {
                 .isInstanceOf(MessageNotFoundException.class)
                 .hasMessage("Message not found: " + id);
     }
+
+    @Test
+    void countMessagesBySenderIdUsesRepositoryCount() {
+        UUID senderId = UUID.randomUUID();
+
+        when(messageRepository.countBySenderId(senderId)).thenReturn(7L);
+
+        assertThat(messageService.countMessagesBySenderId(senderId)).isEqualTo(7L);
+    }
 }
